@@ -7,9 +7,9 @@ from scipy.spatial.distance import jaccard, cosine
 from sklearn.externals.joblib import dump, load
 
 # 数据路径
-dpath = './data/'
+dpath = '../data/'
 # 缓存数据路径
-tmp_dpath = './tmp_data/'
+tmp_dpath = '../tmp_data/'
 # 数据类型
 data_types = {'user':np.int64,'event':np.int64,'invited':np.int8,'interested':np.int8,'not_interested':np.int8,}
 
