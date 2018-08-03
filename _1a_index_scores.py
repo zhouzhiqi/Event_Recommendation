@@ -39,14 +39,14 @@ users_index = {u:i for u,i in zip(users_trte, range(num_users))}
 events_index = {e:i for e,i in zip(events_trte, range(num_events))}
 
 # 保存users索引
-dump(users_index, tmp_dpath+'users_index.joblib.gz', compress=('gzip',3))
+#dump(users_index, tmp_dpath+'users_index.joblib.gz', compress=('gzip',3))
 # 保存events索引
-dump(events_index, tmp_dpath+'events_index.joblib.gz', compress=('gzip',3))
+#dump(events_index, tmp_dpath+'events_index.joblib.gz', compress=('gzip',3))
 
-# 生成users对events的打分{-1,0,1}
-train['scores'] = train.loc[:,'interested'] - train.loc[:,'not_interested']
+# 生成users对events的打分{0.33,0.66,1}
+train['scores'] = (train.loc[:,'interested'] - train.loc[:,'not_interested'] + 2) / 3
 # 生成全是0的稀疏矩阵
-user_event_scores = ss.lil_matrix((num_users, num_events), dtype=np.int8)
+user_event_scores = ss.lil_matrix((num_users, num_events), dtype=np.float64)
 # 把打分数据填入稀疏矩阵
 for i in train.index:
     u = users_index[train.loc[i,'user']]
