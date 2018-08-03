@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import gc
+from multiprocessing import Pool
 
 import scipy.sparse as ss
 from scipy.spatial.distance import jaccard, cosine
@@ -16,7 +18,6 @@ data_types = utils.data_types
 tmp_dpath = utils.tmp_dpath
 # 距离计算公式
 get_distance = utils.get_distance
-all_attend = utils.user_event_and
 to_0_1 = utils.normalization
 to_cat = utils.label_encoder
 
@@ -66,8 +67,10 @@ events_all_num.name = 'all_num'
 #events_atd = events_atd.applymap(lambda x:set(map(lambda y:users_index.get(y, -1), x)))
 event_pop = pd.concat((events_yes_num, events_all_num), axis=1)
 
-# 保存处理好的event_distance
-dump(event_pop, tmp_dpath+'event_pop.joblib.gz', compress=('gzip',3))
+# 保存处理好的events_yes_num
+#dump(events_yes_num, tmp_dpath+'events_yes_num.joblib.gz', compress=('gzip',3))
+# 保存处理好的events_all_num
+#dump(events_all_num, tmp_dpath+'events_all_num.joblib.gz', compress=('gzip',3))
 
 
 with open(dpath+'user_friends.csv') as users_fred:
@@ -94,9 +97,61 @@ users_freds_num.name = 'fre_num'
 #users_freds = users_freds['friends'].apply(lambda x:set(map(lambda y:users_index.get(y, -1), x)))
 
 
-print('saving . . . ')
+#print('saving . . . ')
 # 保存处理好的event_distance
-dump(users_freds_num, tmp_dpath+'users_freds_num.joblib.gz', compress=('gzip',3))
+#dump(users_freds_num, tmp_dpath+'users_freds_num.joblib.gz', compress=('gzip',3))
 
+# 读入训练数据
+train = pd.read_csv(dpath+'train.csv',dtype=data_types, index_col=['timestamp'])
+# 以时间类型数据为index
+train.index = train.index.astype(np.datetime64)
+# 读入测试数据
+test = pd.read_csv(dpath+'test.csv',dtype=data_types, index_col=['timestamp'])
+# 以时间类型数据为index
+test.index = test.index.astype(np.datetime64)
+# 拼接数据
+data_df = pd.concat((train, test), axis=0)
 
+# 取出'user','event'
+data_u_e = data_df[['user','event']].copy()
+# 转换为 users_index, events_index
+data_u_e['user'] = data_u_e['user'].apply(lambda x:users_index[x])
+data_u_e['event'] = data_u_e['event'].apply(lambda x:events_index[x])
+# 重新定义 index
+data_u_e.index = np.arange(data_u_e.shape[0])
+
+del data_df
+gc.collect()
+
+confs = [
+    {'name':'events_yes_num', 'insert_data':events_yes_num,},
+    {'name':'events_all_num', 'insert_data':events_all_num,},
+    {'name':'users_freds_num', 'insert_data':users_freds_num,},
+    ]
+cfs = [
+    {'data':data_u_e,  'conf': conf,}
+    for conf in confs
+    ]
+     
+
+def user_event_cf(param):
+    data = param['data']
+    name = param['conf']['name']
+    insert_data = param['conf']['insert_data']
+
+    if name[0] == 'e': c = 'event'
+    elif name[0] == 'u': c = 'user'
+
+    data[name] = 0.0
+    for i in data.index:
+        if i%1000 == 0: print(name+'--\t', i)
+        u_or_e = data.loc[i,c]
+        data.loc[i,name] = insert_data[u_or_e]
+        #print(name+'--',cf(u, e, user_event_scores, info,))
+    print('saving . . . ')
+    # 保存处理好的event_distance
+    dump(data, tmp_dpath+'{0}.joblib.gz'.format(name), compress=('gzip',3))
+
+with Pool(4) as p:  
+    p.map(user_event_cf, cfs)
 
