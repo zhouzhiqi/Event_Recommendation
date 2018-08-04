@@ -22,6 +22,7 @@ events_index = load(tmp_dpath+'events_index.joblib.gz')
 num_users = len(users_index)
 num_events = len(events_index)
 
+print('get users attended in events')
 # 取出在总数据中出现的event
 with open(dpath+'event_attendees.csv') as events_atd:
     # 生成列名(最后一个列名有'***\n')
@@ -35,13 +36,14 @@ with open(dpath+'event_attendees.csv') as events_atd:
         # 添加入event_test_df
         if int(cols[0]) in events_index.keys():  
             events_atd_df.append(cols)
-
+print('to DataFrame')
 # 生成参加events中的users的DF
 events_atd = pd.DataFrame(events_atd_df,columns=columns,dtype=np.str)
 # 把空缺值替换为np.nan
 events_atd.replace('',np.nan,inplace=True)
 #print(events_atd.shape)
 
+print('to scipy.sparse')
 # 只统计'yes'中的users
 eventsusers = events_atd['yes'].copy()
 # 把index换成event_id
@@ -61,5 +63,6 @@ for e in eventsusers.index:
             except KeyError: continue
             else: user_event[u_index, events_index[e]] = 1
 
+print('saving user<->event scipy.sparse')
 # 保存user<->event矩阵
 dump(user_event, tmp_dpath+'user_event.joblib.gz', compress=('gzip',3))

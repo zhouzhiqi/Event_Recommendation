@@ -15,6 +15,7 @@ data_types = utils.data_types
 # 缓存数据路径
 tmp_dpath = utils.tmp_dpath
 
+print('Load Data ...')
 # 读入训练数据
 train = pd.read_csv(dpath+'train.csv',dtype=data_types, index_col=['timestamp'])
 # 以时间类型数据为index
@@ -26,6 +27,7 @@ test = pd.read_csv(dpath+'test.csv',dtype=data_types, index_col=['timestamp'])
 # 以时间类型数据为index
 test.index = test.index.astype(np.datetime64)
 
+print('get users/events set')
 # train和test中所有的users
 users_trte = set(train.user) | set(test.user)
 # train和test中所有的events
@@ -33,16 +35,17 @@ events_trte = set(train.event) | set(test.event)
 num_users = len(users_trte)
 num_events = len(events_trte)
 
+print('users/events to index, saving ...')
 # 生成users索引
 users_index = {u:i for u,i in zip(users_trte, range(num_users))}
 # 生成events索引
 events_index = {e:i for e,i in zip(events_trte, range(num_events))}
-
 # 保存users索引
 dump(users_index, tmp_dpath+'users_index.joblib.gz', compress=('gzip',3))
 # 保存events索引
 dump(events_index, tmp_dpath+'events_index.joblib.gz', compress=('gzip',3))
 
+print('get users events scores, saving ...')
 # 生成users对events的打分{0.33,0.66,1}
 train['scores'] = (train.loc[:,'interested'] - train.loc[:,'not_interested'] + 2) / 3
 # 生成全是0的稀疏矩阵

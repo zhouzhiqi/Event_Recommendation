@@ -30,7 +30,7 @@ num_users = len(users_index)
 num_events = len(events_index)
 user_event = load(tmp_dpath+'user_event.joblib.gz')
 
-
+print('get users attended in events')
 # 取出在总数据中出现的event
 with open(dpath+'event_attendees.csv') as events_atd:
     # 生成列名(最后一个列名有'***\n')
@@ -52,7 +52,7 @@ with open(dpath+'event_attendees.csv') as events_atd:
                 #cols[i] = set(map(lambda x:users_index.get(int(x), np.nan), cols[i]))
                 #print(cols[i]) 
             events_atd_df.append(cols)
-
+print('to DataFrame, get [yes_num] [all_num]')
 # 生成参加events中的users的DF, 空缺值为''
 events_atd = pd.DataFrame(events_atd_df,columns=columns,)
 # 把event_id转换成index
@@ -67,12 +67,13 @@ events_all_num.name = 'all_num'
 #events_atd = events_atd.applymap(lambda x:set(map(lambda y:users_index.get(y, -1), x)))
 event_pop = pd.concat((events_yes_num, events_all_num), axis=1)
 
+#print('saving ...')
 # 保存处理好的events_yes_num
 #dump(events_yes_num, tmp_dpath+'events_yes_num.joblib.gz', compress=('gzip',3))
 # 保存处理好的events_all_num
 #dump(events_all_num, tmp_dpath+'events_all_num.joblib.gz', compress=('gzip',3))
 
-
+print('get users friends')
 with open(dpath+'user_friends.csv') as users_fred:
     # 读入列名信息
     columns = users_fred.readline()[:-1].split(',')
@@ -85,6 +86,7 @@ with open(dpath+'user_friends.csv') as users_fred:
             cols[1] = cols[1][:-1].split(' ')
             cols[1] = set(map(lambda x:int(x), cols[1]))
             users_fred_df.append(cols)
+print('to DataFrame, get [fre_num]')
 # 把生成好的users_fred 转成DataFrame
 users_freds = pd.DataFrame(users_fred_df,columns=columns,)
 # 把空缺值替换为np.nan
@@ -101,6 +103,7 @@ users_freds_num.name = 'fre_num'
 # 保存处理好的event_distance
 #dump(users_freds_num, tmp_dpath+'users_freds_num.joblib.gz', compress=('gzip',3))
 
+print('Load train an test')
 # 读入训练数据
 train = pd.read_csv(dpath+'train.csv',dtype=data_types, index_col=['timestamp'])
 # 以时间类型数据为index
@@ -111,7 +114,7 @@ test = pd.read_csv(dpath+'test.csv',dtype=data_types, index_col=['timestamp'])
 test.index = test.index.astype(np.datetime64)
 # 拼接数据
 data_df = pd.concat((train, test), axis=0)
-
+print('get user and event')
 # 取出'user','event'
 data_u_e = data_df[['user','event']].copy()
 # 转换为 users_index, events_index
@@ -123,6 +126,7 @@ data_u_e.index = np.arange(data_u_e.shape[0])
 del data_df
 gc.collect()
 
+# 生成所用参数列表
 confs = [
     {'name':'events_yes_num', 'insert_data':events_yes_num,},
     {'name':'events_all_num', 'insert_data':events_all_num,},
@@ -133,12 +137,13 @@ cfs = [
     for conf in confs
     ]
      
-
+# 定义函数, 用于保存 users_freds_num, 
+# events_all_num, events_yes_num, 
 def user_event_cf(param):
     data = param['data']
     name = param['conf']['name']
     insert_data = param['conf']['insert_data']
-
+    # 要处理的列名
     if name[0] == 'e': c = 'event'
     elif name[0] == 'u': c = 'user'
 
@@ -146,9 +151,10 @@ def user_event_cf(param):
     for i in data.index:
         if i%1000 == 0: print(name+'--\t', i)
         u_or_e = data.loc[i,c]
+        # 添加 num/pop 到 data
         data.loc[i,name] = insert_data[u_or_e]
         #print(name+'--',cf(u, e, user_event_scores, info,))
-    print('saving . . . ')
+    print(name+'--\t','saving . . . ')
     # 保存处理好的event_distance
     dump(data, tmp_dpath+'{0}.joblib.gz'.format(name), compress=('gzip',3))
 
