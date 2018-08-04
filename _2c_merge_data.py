@@ -29,6 +29,7 @@ all_event = set(events_index.keys())
 num_users = len(users_index)
 num_events = len(events_index)
 
+print('Load train test')
 # 读入训练数据
 train = pd.read_csv(dpath+'train.csv',dtype=data_types, index_col=['timestamp'])
 # 以时间类型数据为index
@@ -40,30 +41,35 @@ test.index = test.index.astype(np.datetime64)
 # 拼接数据
 data_df = pd.concat((train, test), axis=0)
 
-data_df['user'] = data_df['user'].apply(lambda x:users_index[int(x)])
-data_df['event'] = data_df['event'].apply(lambda x:events_index[int(x)])
-
-data_df['day'] = to_0_1(to_cat(data_df.index.day))
-data_df['month'] = to_0_1(to_cat(data_df.index.month))
-data_df['weekday'] = to_0_1(to_cat(data_df.index.weekday))
-data_df['date'] = to_0_1(data_df.index.date)
-
-
-
+print('encoding')
+#data_df['user_id'] = data_df['user'].apply(lambda x:users_index[int(x)])
+#data_df['event_id'] = data_df['event'].apply(lambda x:events_index[int(x)])
+# 生成新特征
+data_df['day'] = to_0_1(to_cat(data_df.index.day)) 
+data_df['month'] = to_0_1(to_cat(data_df.index.month)) 
+data_df['weekday'] = to_0_1(to_cat(data_df.index.weekday)) 
+data_df['date'] = to_0_1(data_df.index.date).astype(np.float64) 
+# 重新定义 index
+data_df.index = np.arange(data_df.shape[0])
+# 待添加的文件名
 confs = [
     {'name':'user_cf_dis', },
     {'name':'event_cf_dis', },
     {'name':'user_cf_reco', },
-    {'name':'event_cf_reco', },
+#    {'name':'event_cf_reco', },
     {'name':'events_yes_num', },
     {'name':'events_all_num', },
     {'name':'users_freds_num', },
     ]
-
+# 导入数据 并添加到train/test
 for conf in confs:
     name = conf['name']
+    print('merging data:\t', name)
     data = load(tmp_dpath+'{0}.joblib.gz'.format(name))
-    data_df[name] = data[name]
-
+    data_df[name] = data[name] 
+    
+print('saving ...')
+# 保存最终的train/test
+print(data_df[:5])
 dump(data_df, tmp_dpath+'data_df.joblib.gz', compress=('gzip',3))
 

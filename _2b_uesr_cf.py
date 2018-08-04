@@ -89,6 +89,6 @@ def user_event_cf(param):
     # 保存处理好的event_distance
     dump(data, tmp_dpath+'{0}.joblib.gz'.format(name), compress=('gzip',3))
 
-with Pool(4) as p:  
-    p.map(user_event_cf, cfs)
-
+#with Pool(4) as p:  
+#    p.map(user_event_cf, cfs)
+user_event_cf(cfs[-1])
